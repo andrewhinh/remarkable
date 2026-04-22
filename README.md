@@ -80,13 +80,13 @@ rm-ssh-over-wlan on
 ./scripts/install-tailscale.sh
 ```
 
-This installs the official static `arm64` binaries under:
+This verifies the downloaded tarball against Tailscale's published `.sha256` checksum, then installs the official static `arm64` binaries under:
 
 ```sh
 /home/root/tailscale
 ```
 
-and writes:
+It writes:
 
 ```sh
 /etc/systemd/system/tailscaled-remarkable.service
@@ -127,6 +127,7 @@ What it does:
 tailscale serve --bg --yes --tcp 2222 -- tcp://<wlan0-ip>:22
 ```
 
+- updates only the configured TCP forward instead of resetting all `tailscale serve` config
 - refreshes every 30s so Wi-Fi IP changes heal automatically
 
 ### 5. Install local SSH alias
@@ -163,6 +164,7 @@ ssh rem
 Quick checks:
 
 ```sh
+./scripts/smoke-test.sh
 ssh rem
 tailscale status
 ```

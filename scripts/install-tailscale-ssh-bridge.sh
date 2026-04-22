@@ -48,12 +48,25 @@ if [ -z "\${ip4:-}" ]; then
   exit 0
 fi
 
-if "\$TS" --socket="\$SOCKET" serve status 2>/dev/null | grep -Fq "|--> tcp://\$ip4:22"; then
+current_target=\$(
+  "\$TS" --socket="\$SOCKET" serve status --json 2>/dev/null | awk -v port="\$PORT" '
+    \$0 ~ "\"" port "\"[[:space:]]*:[[:space:]]*\\{" { in_port=1; next }
+    in_port && /"TCPForward"[[:space:]]*:/ {
+      line=\$0
+      sub(/.*"TCPForward"[[:space:]]*:[[:space:]]*"/, "", line)
+      sub(/".*/, "", line)
+      print line
+      exit
+    }
+    in_port && /^[[:space:]]*}/ { in_port=0 }
+  ' || true
+)
+
+if [ "\${current_target:-}" = "\$ip4:22" ]; then
   exit 0
 fi
 
 "\$TS" --socket="\$SOCKET" set --ssh >/dev/null 2>&1 || true
-"\$TS" --socket="\$SOCKET" serve reset >/dev/null 2>&1 || true
 "\$TS" --socket="\$SOCKET" serve --bg --yes --tcp "\$PORT" -- "tcp://\$ip4:22" >/dev/null
 EOF
 

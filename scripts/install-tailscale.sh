@@ -20,14 +20,19 @@ SOCKET=$3
 ARCH=arm64
 PKG="tailscale_${VERSION}_${ARCH}.tgz"
 URL="https://pkgs.tailscale.com/stable/${PKG}"
+SUM_FILE="${PKG}.sha256"
+SUM_URL="${URL}.sha256"
 
 mkdir -p "$BASE/download" "$BASE/bin" "$BASE/state"
 cd "$BASE/download"
 
 if ! { [ -x "$BASE/bin/tailscale" ] && [ -x "$BASE/bin/tailscaled" ] \
   && "$BASE/bin/tailscale" version 2>/dev/null | sed -n '1s/ .*//p' | grep -Fxq "$VERSION"; }; then
-  rm -rf "tailscale_${VERSION}_${ARCH}" "$PKG"
+  rm -rf "tailscale_${VERSION}_${ARCH}" "$PKG" "$SUM_FILE"
   wget -q "$URL" -O "$PKG"
+  wget -q "$SUM_URL" -O "$SUM_FILE"
+  IFS= read -r expected_sum < "$SUM_FILE"
+  printf '%s  %s\n' "$expected_sum" "$PKG" | sha256sum -c -
   tar xzf "$PKG"
   cp "tailscale_${VERSION}_${ARCH}/tailscale" "tailscale_${VERSION}_${ARCH}/tailscaled" "$BASE/bin/"
   chmod 755 "$BASE/bin/tailscale" "$BASE/bin/tailscaled"
